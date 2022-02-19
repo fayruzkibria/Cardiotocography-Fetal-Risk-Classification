@@ -1,0 +1,626 @@
+---
+
+---
+
+<center>  <h3> Fayruz Kibria </h2> </center>
+
+---
+
+#### Imporing the rawdata sheet (sheet 3) from the library.
+
+
+```{r}
+library(readxl)
+library(httr)
+#packageVersion("readxl")
+
+url<-'https://archive.ics.uci.edu/ml/machine-learning-databases/00193/CTG.xls'
+GET(url, write_disk(tf <- tempfile(fileext = ".xls")))
+
+
+```
+
+```{r}
+rawdata <- read_excel(tf, 3L)
+str(rawdata)
+head(rawdata)
+tail(rawdata)
+```
+
+
+
+
+#### Removing non data rows, annd irrelevant columns
+
+```{r}
+library(tidyr)
+
+rawdata[!complete.cases(rawdata),]
+
+df1<-rawdata %>% drop_na()
+
+df1<- subset (df1, select = -c(FileName,Date,SegFile))
+head(df1)
+tail(df1)
+str (df1)
+
+```
+#### Checking for missing values, low variance and duplicate columns
+
+```{r}
+
+library(psych)
+
+
+names <- c('Tendency', 'A',	'B',	'C',	'D',	'E',	'AD',	'DE',	'LD',	'FS',	'SUSP', 'CLASS', 'NSP')
+df1[,names] <- lapply(df1[,names] , factor)
+
+names <- c('AC',	'FM',	'UC',		'DL',	'DS',	'DP',	'DR', 'Nmax', 'Nzeros')
+df1[,names] <- lapply(df1[,names] , as.integer)
+
+
+cat("There are", sum(is.na(df1)), "missing data in the dataset.\n\n")
+
+
+
+describe(df1)
+
+```
+```{r}
+
+library(ggplot2)
+library(gridExtra)
+
+theme_set(
+  theme_bw() +
+    theme(legend.title=element_blank())+
+    theme(legend.position = "top")
+  )
+
+temp<-df1
+
+# b e
+p=list()
+namess<-c('b','e')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+#LBE	LB	
+p=list()
+namess<-c('LBE','LB')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+#AC	FM	UC	
+p=list()
+namess<-c('AC',	'FM',	'UC')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=3, nrow=2, top = "Variable histogram with NSP Classes")
+
+#	DL	DS	DP	DR
+p=list()
+namess<-c(	'DL',	'DS',	'DP',	'DR')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+#ASTV	MSTV	ALTV	MLTV	
+p=list()
+namess<-c('ASTV',	'MSTV',	'ALTV',	'MLTV')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+# Mode	Mean	Median	Variance Tendency
+p=list()
+namess<-c('Mode',	'Mean',	'Median',	'Variance','Tendency')
+for (i in 1:length(namess)){
+  if(i < length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+  }else{
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+  }
+}
+grid.arrange(grobs=p,ncol=3, nrow=2, top = "Variable histogram with NSP Classes")
+
+# Width	Min	Max		Nmax	Nzeros 
+p=list()
+namess<-c('Width',	'Min',	'Max','Nmax',	'Nzeros' )
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=3, nrow=2, top = "Variable histogram with NSP Classes")
+
+#A	B	C	D	
+p=list()
+namess<-c('A',	'B',	'C',	'D')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+#	E	AD	DE	LD
+p=list()
+namess<-c('E',	'AD',	'DE',	'LD')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+#	FS	SUSP
+p=list()
+namess<-c('FS',	'SUSP')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+
+
+# CLASS	NSP
+p=list()
+namess<-c( 'CLASS' ,	'NSP')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+```
+
+```{r}
+variances<-apply(df1, 2, var)
+variances[which(variances<=0.0025)]
+
+df1[duplicated(as.list(df1))]
+```
+
+```{r}
+
+df2<- subset (df1, select = -c(DR, LBE))
+str(df2)
+
+```
+
+```{r}
+library(dplyr)
+
+df3 <- df2 %>% mutate(nPoints = e - b)
+
+df3 <- df3 %>% mutate(nAC = AC/nPoints)
+df3 <- df3 %>% mutate(nFM = FM/nPoints)
+df3 <- df3 %>% mutate(nUC = UC/nPoints)
+df3 <- df3 %>% mutate(nDL = DL/nPoints)
+df3 <- df3 %>% mutate(nDS = DS/nPoints)
+df3 <- df3 %>% mutate(nDP = DP/nPoints)
+
+df4 <- subset (df3, select = -c(b,	e,	AC,	FM,	UC,	DL,	DS,	DP))#, A, B, C, D, E, AD, DE, LD, FS, SUSP))
+
+str(df4)
+
+```
+
+
+
+```{r}
+library(tidyverse)
+
+
+df5<-cbind(df4 %>% select(where(is.numeric)) ,df4 %>% select(where(is.factor)) )
+
+str(df5)
+describe(df5)
+
+
+```
+
+
+
+```{r}
+
+theme_set(
+  theme_bw() +
+    theme(legend.title=element_blank())+
+    theme(legend.position = "top")
+  )
+
+temp<-df5
+
+# nPoints
+p=list()
+namess<-c('nPoints')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+#AC	FM	UC	DL	DS	DP	
+#pqq=list()
+#namess<-c('AC',	'FM',	'UC',	'DL',	'DS',	'DP')
+#for (i in 1:length(namess)){
+#  pqq[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+#  geom_bar(binwidth=1)
+#}
+#grid.arrange(grobs=pqq,ncol=3, nrow=2)
+
+# nAC	nFM	nUC	nDL	nDS	nDP
+p=list()
+namess<-c('nAC',	'nFM',	'nUC',	'nDL',	'nDS',	'nDP')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=3, nrow=2, top = "Variable histogram with NSP Classes")
+
+```
+
+```{r}
+
+min_max_norm <- function(x) {
+    (x - min(x)) / (max(x) - min(x))
+  }
+
+df6 <- as.data.frame(sapply(df5 %>% select(where(is.numeric)), min_max_norm))
+df7 <- cbind(df6, df5 %>% select(where(is.factor)))
+
+describeBy(df7, group=df7$NSP)
+str(df7)
+```
+```{r}
+
+theme_set(
+  theme_bw() +
+    theme(legend.title=element_blank())+
+    theme(legend.position = "top")
+  )
+
+temp<-df7
+
+# nPoints
+p=list()
+namess<-c('nPoints')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+#	LB	
+p=list()
+namess<-c('LB')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+#nAC	nFM	nUC	
+p=list()
+namess<-c('nAC',	'nFM',	'nUC')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=3, nrow=2, top = "Variable histogram with NSP Classes")
+
+#	nDL	nDS	nDP
+p=list()
+namess<-c(	'nDL',	'nDS',	'nDP')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=3, nrow=2, top = "Variable histogram with NSP Classes")
+
+#ASTV	MSTV	ALTV	MLTV	
+p=list()
+namess<-c('ASTV',	'MSTV',	'ALTV',	'MLTV')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+# Mode	Mean	Median	Variance Tendency
+p=list()
+namess<-c('Mode',	'Mean',	'Median',	'Variance','Tendency')
+for (i in 1:length(namess)){
+  if(i < length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+  }else{
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+  }
+}
+grid.arrange(grobs=p,ncol=3, nrow=2, top = "Variable histogram with NSP Classes")
+
+# Width	Min	Max		Nmax	Nzeros 
+p=list()
+namess<-c('Width',	'Min',	'Max','Nmax',	'Nzeros' )
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_histogram(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=3, nrow=2, top = "Variable histogram with NSP Classes")
+
+#A	B	C	D	
+p=list()
+namess<-c('A',	'B',	'C',	'D')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+#	E	AD	DE	LD
+p=list()
+namess<-c('E',	'AD',	'DE',	'LD')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+#	FS	SUSP
+p=list()
+namess<-c('FS',	'SUSP')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+
+
+# CLASS	NSP
+p=list()
+namess<-c( 'CLASS' ,	'NSP')
+for (i in 1:length(namess)){
+  p[[i]] <- ggplot(temp, aes_string(x = namess[i])) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))
+}
+grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes")
+
+```
+
+#### Exploring the correlation between the attributes other than class attribute
+
+```{r}
+
+library(corrplot)
+
+
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+corrplot(round(cor(select_if(df7, is.numeric)),1), method="color", col=col(200),  
+         type="lower", order="hclust", 
+         addCoef.col = "black", # Add coefficient of correlation
+         tl.col="black", tl.srt=90, number.cex= .6,#Text label color and rotation
+         # hide correlation coefficient on the principal diagonal
+         diag=FALSE 
+         )
+
+```
+
+```{r}
+
+
+library(lares)
+
+corr_cross(select_if(df7, is.numeric), # name of dataset
+  max_pvalue = 0.5, # display only significant correlations (at 5% level)
+  top = 10 # display top 10 couples of variables (by correlation coefficient)
+)
+```
+
+
+
+
+
+#### kruskal test
+
+```{r}
+
+#for(i in names(df7[1:23])){  
+#  kwt<-kruskal.test(formula(paste(i, "~ NSP")), data = df7)
+#  print(kwt)
+#}
+
+
+library(broom)
+kwt_df <- df5 %>% gather(key, value, -NSP) %>% 
+       group_by(key) %>% 
+       do(tidy(kruskal.test(x= .$value, g = .$NSP)))
+#kwt_df
+kwt_df[with(kwt_df, order(-p.value, statistic)), ]
+```
+
+#### Dividing the dataset to training and test sets. 
+
+```{r}
+
+df8<-subset(df7, select=-c(nPoints))
+str(df8)
+```
+
+```{r}
+
+library(caret)
+set.seed(3456)
+ 
+trainIndex <- createDataPartition(df8$NSP, p = .7,
+                                  list = FALSE,
+                                  times = 1)
+training.data <- df8[ trainIndex,]
+test.data <- df8[-trainIndex,]
+
+# checking split rows
+summary(training.data$NSP)
+print(length(training.data$NSP))
+print(c(1099,203,115)/length(training.data$NSP))
+cat('\n\n')
+summary(test.data$NSP)
+print(length(test.data$NSP))
+print(c(556,92,61)/length(test.data$NSP))
+
+p<-list()
+p[[1]] <- ggplot(training.data, aes(x=NSP)) + 
+    geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))+
+  geom_text(stat='count', aes(label=..count..), vjust=1.25)+
+  ggtitle("Train Set NSP Count")+
+  theme(plot.title = element_text(hjust = 0.5))
+p[[2]] <- ggplot(test.data, aes(x=NSP)) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))+
+  geom_text(stat='count', aes(label=..count..), vjust=1.25)+
+  ggtitle("Test Set NSP Count")+
+  theme(plot.title = element_text(hjust = 0.5))
+grid.arrange(grobs=p,ncol=2, nrow=1)
+
+```
+
+
+#### SMOTE oversampling of NSP class 2 and 3 in the training sample
+
+
+```{r}
+#class imbalance analysis
+
+C<-3
+
+Tdata<-length(df8$NSP)
+
+n1<-length(which(df8$NSP=="1"))
+n2<-length(which(df8$NSP=="2"))
+n3<-length(which(df8$NSP=="3"))
+
+imbalanceStat<-abs(((1/C)-(n1/Tdata)))+abs(((1/C)-(n2/Tdata)))+abs(((1/C)-(n3/Tdata)))
+
+cat("Class 1: ",round(n1*100/Tdata,0),"%\n")
+cat("Class 2: ",round(n2*100/Tdata,0),"%\n")
+cat("Class 3: ",round(n3*100/Tdata,0),"%\n\n")
+cat("Imbalance: ",round(imbalanceStat,2))
+```
+
+```{r}
+
+C<-3
+
+tTdata<-length(training.data$NSP)
+
+tn1<-length(which(training.data$NSP=="1"))
+tn2<-length(which(training.data$NSP=="2"))
+tn3<-length(which(training.data$NSP=="3"))
+
+timbalanceStat<-abs(((1/C)-(tn1/tTdata)))+abs(((1/C)-(tn2/tTdata)))+abs(((1/C)-(tn3/tTdata)))
+
+#cat("Class 1: ",round(tn1*100/tTdata,0),"%\n")
+#cat("Class 2: ",round(tn2*100/tTdata,0),"%\n")
+#cat("Class 3: ",round(tn3*100/tTdata,0),"%\n\n")
+#cat("Imbalance: ",round(timbalanceStat,2),"\n\n")
+
+imbalanceStatDesired<-0.39
+
+# assuming desired n2 = n3
+desired_n3<- -(((imbalanceStatDesired-abs(1/C-tn1/tTdata))/2)-1/C)*tTdata
+
+
+cat("Number of instances of NSP = 3 desired in the training data is",round(desired_n3,0),"to maintain an imbalance stat of",imbalanceStatDesired)
+
+factorn2<-desired_n3/tn2
+factorn3<-desired_n3/tn3 
+
+```
+
+
+```{r}
+#library (smotefamily)
+#set.seed(12345)
+
+#SMOTE oversampling
+
+#newtd<-SMOTE(training.data, training.data$NSP, K=5,dup_size=0.46)
+#table(newtd$NSP)
+
+write.csv(df8,"df8.csv", row.names = FALSE)
+
+```
+
+
+
+```{r}
+train_pthn <- read.csv(file = 'X_y_train_combined.csv', )
+test_pthn <- read.csv(file = 'X_y_test_combined.csv', )
+
+names <- c('Tendency', 'A',	'B',	'C',	'D',	'E',	'AD',	'DE',	'LD',	'FS',	'SUSP', 'CLASS', 'NSP')
+train_pthn[,names] <- lapply(train_pthn[,names] , factor)
+test_pthn[,names] <- lapply(test_pthn[,names] , factor)
+
+head(test_pthn)
+```
+```{r}
+
+
+p<-list()
+p[[1]] <- ggplot(train_pthn, aes(x=NSP)) + 
+    geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))+
+  geom_text(stat='count', aes(label=..count..), vjust=1.25)+
+  ggtitle("Train Set NSP Count")+
+  theme(plot.title = element_text(hjust = 0.5))
+p[[2]] <- ggplot(test_pthn, aes(x=NSP)) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))+
+  geom_text(stat='count', aes(label=..count..), vjust=1.25)+
+  ggtitle("Test Set NSP Count")+
+  theme(plot.title = element_text(hjust = 0.5))
+grid.arrange(grobs=p,ncol=2, nrow=1)
+
+
+```
+```{r}
+
+train_pthn2 <- read.csv(file = 'X_y_train_fullres_combined.csv', )
+test_pthn <- read.csv(file = 'X_y_test_combined.csv', )
+
+names <- c('Tendency', 'A',	'B',	'C',	'D',	'E',	'AD',	'DE',	'LD',	'FS',	'SUSP', 'CLASS', 'NSP')
+train_pthn2[,names] <- lapply(train_pthn2[,names] , factor)
+test_pthn[,names] <- lapply(test_pthn[,names] , factor)
+
+```
+
+```{r}
+
+
+p<-list()
+p[[1]] <- ggplot(train_pthn2, aes(x=NSP)) + 
+    geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))+
+  geom_text(stat='count', aes(label=..count..), vjust=1.25)+
+  ggtitle("Train Set NSP Count")+
+  theme(plot.title = element_text(hjust = 0.5))
+p[[2]] <- ggplot(test_pthn, aes(x=NSP)) + 
+  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))+
+  geom_text(stat='count', aes(label=..count..), vjust=1.25)+
+  ggtitle("Test Set NSP Count")+
+  theme(plot.title = element_text(hjust = 0.5))
+grid.arrange(grobs=p,ncol=2, nrow=1)
+
+
+```
