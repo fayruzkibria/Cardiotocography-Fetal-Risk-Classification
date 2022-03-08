@@ -2,7 +2,7 @@
 
 ---
 
-<center>  <h3> Fayruz Kibria </h2> </center>
+<center>  <h3> Fayruz Kibria Feb 2022 </h2> </center>
 
 ---
 
@@ -10,6 +10,9 @@
 
 
 ```{r}
+
+# Imporing the rawdata sheet (sheet 3) from the library
+
 library(readxl)
 library(httr)
 #packageVersion("readxl")
@@ -21,6 +24,8 @@ GET(url, write_disk(tf <- tempfile(fileext = ".xls")))
 ```
 
 ```{r}
+# read raw data file in as dataframe
+
 rawdata <- read_excel(tf, 3L)
 str(rawdata)
 head(rawdata)
@@ -30,9 +35,11 @@ tail(rawdata)
 
 
 
-#### Removing non data rows, annd irrelevant columns
+#### 
 
 ```{r}
+# dropping incomplete cases, and irrelevant columns after examining head and tail of data
+
 library(tidyr)
 
 rawdata[!complete.cases(rawdata),]
@@ -45,9 +52,10 @@ tail(df1)
 str (df1)
 
 ```
-#### Checking for missing values, low variance and duplicate columns
+#### 
 
 ```{r}
+# assigning col names, checking for missing data, and data description
 
 library(psych)
 
@@ -67,6 +75,15 @@ describe(df1)
 
 ```
 ```{r}
+# deescription of categorical variables
+
+library(SmartEDA)
+#ExpCTable(df1,Target=NULL,clim=5,nlim=15,round=2,bin=NULL,per=F)
+ExpCustomStat(df1,Cvar=c("Tendency","A","B","C","D","E","AD","DE","LD","FS","SUSP","CLASS", "NSP"),gpby=FALSE)
+```
+
+```{r}
+# plotting all raw variable histogram
 
 library(ggplot2)
 library(gridExtra)
@@ -188,13 +205,27 @@ grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes"
 ```
 
 ```{r}
+# checking the variance of the DR column
+
 variances<-apply(df1, 2, var)
 variances[which(variances<=0.0025)]
 
-df1[duplicated(as.list(df1))]
+
 ```
 
 ```{r}
+
+# checking if there are exact duplicate columns in the dataset
+
+dup <- ifelse(df1$LBE > df1$LB, 1,ifelse(df1$LBE < df1$LB, 1, 0))
+paste0("There are ",sum(dup)," items that are different in the LB anf LBE columns.")
+
+
+```
+
+
+```{r}
+# dropping the variable LBE because it is exact copy of the LB variable
 
 df2<- subset (df1, select = -c(DR, LBE))
 str(df2)
@@ -202,6 +233,9 @@ str(df2)
 ```
 
 ```{r}
+# calculating nPoints the length of record length variable from end and start instance numbers
+# normalizing the recording length sensitive variables, adding them to the data set and dropping original cols
+
 library(dplyr)
 
 df3 <- df2 %>% mutate(nPoints = e - b)
@@ -222,6 +256,8 @@ str(df4)
 
 
 ```{r}
+# re arranging the data set to have all the categorical variables grouped at the end columns
+
 library(tidyverse)
 
 
@@ -236,6 +272,7 @@ describe(df5)
 
 
 ```{r}
+# plotting n points and recording-length-normalized data
 
 theme_set(
   theme_bw() +
@@ -275,6 +312,7 @@ grid.arrange(grobs=p,ncol=3, nrow=2, top = "Variable histogram with NSP Classes"
 ```
 
 ```{r}
+# min max normalizing the data, where columns are numerical
 
 min_max_norm <- function(x) {
     (x - min(x)) / (max(x) - min(x))
@@ -285,8 +323,14 @@ df7 <- cbind(df6, df5 %>% select(where(is.factor)))
 
 describeBy(df7, group=df7$NSP)
 str(df7)
+
+
+
 ```
+
+
 ```{r}
+# plotting min max normalized data
 
 theme_set(
   theme_bw() +
@@ -407,6 +451,7 @@ grid.arrange(grobs=p,ncol=2, nrow=2, top = "Variable histogram with NSP Classes"
 #### Exploring the correlation between the attributes other than class attribute
 
 ```{r}
+# correlation plot of all the min max normalized numerical variables
 
 library(corrplot)
 
@@ -422,24 +467,11 @@ corrplot(round(cor(select_if(df7, is.numeric)),1), method="color", col=col(200),
 
 ```
 
-```{r}
-
-
-library(lares)
-
-corr_cross(select_if(df7, is.numeric), # name of dataset
-  max_pvalue = 0.5, # display only significant correlations (at 5% level)
-  top = 10 # display top 10 couples of variables (by correlation coefficient)
-)
-```
-
-
-
-
-
-#### kruskal test
+###
 
 ```{r}
+
+# kruskal test on the min max normalized dataset
 
 #for(i in names(df7[1:23])){  
 #  kwt<-kruskal.test(formula(paste(i, "~ NSP")), data = df7)
@@ -448,62 +480,35 @@ corr_cross(select_if(df7, is.numeric), # name of dataset
 
 
 library(broom)
-kwt_df <- df5 %>% gather(key, value, -NSP) %>% 
+kwt_df <- df7 %>% gather(key, value, -NSP) %>% 
        group_by(key) %>% 
        do(tidy(kruskal.test(x= .$value, g = .$NSP)))
-#kwt_df
-kwt_df[with(kwt_df, order(-p.value, statistic)), ]
+#kwt_df #df5
+kwt_df[with(kwt_df, order(p.value, statistic)), ] # printing most discerning variables
+
+```
+```{r}
+
+# kruskal test on the min max normalized dataset
+
+kwt_df[with(kwt_df, order(-p.value, statistic)), ]# reading the least discerning variables
+
 ```
 
 #### Dividing the dataset to training and test sets. 
 
 ```{r}
+# dropping nPoints because it is not significant factor in differentiating NSP
 
 df8<-subset(df7, select=-c(nPoints))
 str(df8)
-```
-
-```{r}
-
-library(caret)
-set.seed(3456)
- 
-trainIndex <- createDataPartition(df8$NSP, p = .7,
-                                  list = FALSE,
-                                  times = 1)
-training.data <- df8[ trainIndex,]
-test.data <- df8[-trainIndex,]
-
-# checking split rows
-summary(training.data$NSP)
-print(length(training.data$NSP))
-print(c(1099,203,115)/length(training.data$NSP))
-cat('\n\n')
-summary(test.data$NSP)
-print(length(test.data$NSP))
-print(c(556,92,61)/length(test.data$NSP))
-
-p<-list()
-p[[1]] <- ggplot(training.data, aes(x=NSP)) + 
-    geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))+
-  geom_text(stat='count', aes(label=..count..), vjust=1.25)+
-  ggtitle("Train Set NSP Count")+
-  theme(plot.title = element_text(hjust = 0.5))
-p[[2]] <- ggplot(test.data, aes(x=NSP)) + 
-  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))+
-  geom_text(stat='count', aes(label=..count..), vjust=1.25)+
-  ggtitle("Test Set NSP Count")+
-  theme(plot.title = element_text(hjust = 0.5))
-grid.arrange(grobs=p,ncol=2, nrow=1)
 
 ```
-
-
-#### SMOTE oversampling of NSP class 2 and 3 in the training sample
+###
 
 
 ```{r}
-#class imbalance analysis
+#class imbalance analysis for the whole dataset
 
 C<-3
 
@@ -523,43 +528,7 @@ cat("Imbalance: ",round(imbalanceStat,2))
 
 ```{r}
 
-C<-3
-
-tTdata<-length(training.data$NSP)
-
-tn1<-length(which(training.data$NSP=="1"))
-tn2<-length(which(training.data$NSP=="2"))
-tn3<-length(which(training.data$NSP=="3"))
-
-timbalanceStat<-abs(((1/C)-(tn1/tTdata)))+abs(((1/C)-(tn2/tTdata)))+abs(((1/C)-(tn3/tTdata)))
-
-#cat("Class 1: ",round(tn1*100/tTdata,0),"%\n")
-#cat("Class 2: ",round(tn2*100/tTdata,0),"%\n")
-#cat("Class 3: ",round(tn3*100/tTdata,0),"%\n\n")
-#cat("Imbalance: ",round(timbalanceStat,2),"\n\n")
-
-imbalanceStatDesired<-0.39
-
-# assuming desired n2 = n3
-desired_n3<- -(((imbalanceStatDesired-abs(1/C-tn1/tTdata))/2)-1/C)*tTdata
-
-
-cat("Number of instances of NSP = 3 desired in the training data is",round(desired_n3,0),"to maintain an imbalance stat of",imbalanceStatDesired)
-
-factorn2<-desired_n3/tn2
-factorn3<-desired_n3/tn3 
-
-```
-
-
-```{r}
-#library (smotefamily)
-#set.seed(12345)
-
-#SMOTE oversampling
-
-#newtd<-SMOTE(training.data, training.data$NSP, K=5,dup_size=0.46)
-#table(newtd$NSP)
+# writing csv file to disk for importing to python code
 
 write.csv(df8,"df8.csv", row.names = FALSE)
 
@@ -568,6 +537,9 @@ write.csv(df8,"df8.csv", row.names = FALSE)
 
 
 ```{r}
+
+# importing the python train test split for plotting
+
 train_pthn <- read.csv(file = 'X_y_train_combined.csv', )
 test_pthn <- read.csv(file = 'X_y_test_combined.csv', )
 
@@ -578,7 +550,13 @@ test_pthn[,names] <- lapply(test_pthn[,names] , factor)
 head(test_pthn)
 ```
 ```{r}
-
+library(ggplot2)
+library(gridExtra)
+ theme_set(
+   theme_bw() +
+     theme(legend.title=element_blank())+
+     theme(legend.position = "top")
+   )
 
 p<-list()
 p[[1]] <- ggplot(train_pthn, aes(x=NSP)) + 
@@ -595,32 +573,6 @@ grid.arrange(grobs=p,ncol=2, nrow=1)
 
 
 ```
-```{r}
-
-train_pthn2 <- read.csv(file = 'X_y_train_fullres_combined.csv', )
-test_pthn <- read.csv(file = 'X_y_test_combined.csv', )
-
-names <- c('Tendency', 'A',	'B',	'C',	'D',	'E',	'AD',	'DE',	'LD',	'FS',	'SUSP', 'CLASS', 'NSP')
-train_pthn2[,names] <- lapply(train_pthn2[,names] , factor)
-test_pthn[,names] <- lapply(test_pthn[,names] , factor)
-
-```
-
-```{r}
 
 
-p<-list()
-p[[1]] <- ggplot(train_pthn2, aes(x=NSP)) + 
-    geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))+
-  geom_text(stat='count', aes(label=..count..), vjust=1.25)+
-  ggtitle("Train Set NSP Count")+
-  theme(plot.title = element_text(hjust = 0.5))
-p[[2]] <- ggplot(test_pthn, aes(x=NSP)) + 
-  geom_bar(aes(fill=factor(NSP, levels=c("3", "2", "1"))))+
-  geom_text(stat='count', aes(label=..count..), vjust=1.25)+
-  ggtitle("Test Set NSP Count")+
-  theme(plot.title = element_text(hjust = 0.5))
-grid.arrange(grobs=p,ncol=2, nrow=1)
 
-
-```
